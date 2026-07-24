@@ -163,12 +163,12 @@ td select { font-size: 11px; padding: 2px 4px; border-radius: 3px; }
 
 <div id="js-error" style="display:none;background:#c0392b;color:#fff;padding:10px 16px;font-size:13px;font-family:monospace;white-space:pre-wrap;"></div>
 <div class="header">
-  <h1 id="app-title">ステークホルダーマップ</h1>
-  <span class="header-sub" id="app-subtitle">組織変革 推進状況の可視化</span>
-  <span class="privacy-note" id="app-privacy">🔒 すべてのデータはこのブラウザ内にのみ保存されます。外部通信なし。</span>
+  <h1 id="app-title">Stakeholder Map</h1>
+  <span class="header-sub" id="app-subtitle">Change Management — Engagement Tracker</span>
+  <span class="privacy-note" id="app-privacy">🔒 All data is stored in this browser only. No external communication.</span>
   <div class="lang-switcher">
-    <button class="lang-btn active" id="btn-ja" onclick="setLang('ja')">日本語</button>
-    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="btn-ja" onclick="setLang('ja')">日本語</button>
+    <button class="lang-btn active" id="btn-en" onclick="setLang('en')">EN</button>
     <button class="lang-btn" id="btn-zh" onclick="setLang('zh')">中文</button>
     <button class="lang-btn" id="btn-de" onclick="setLang('de')">DE</button>
   </div>
@@ -425,7 +425,7 @@ var LANGS = {
   }
 };
 
-var currentLang = 'ja';
+var currentLang = 'en';
 
 function t(key) {
   var lang = LANGS[currentLang] || LANGS.ja;
@@ -486,23 +486,23 @@ function attDisplay(code) {
 }
 
 var INITIAL_STAKEHOLDERS = [
-  { id:'s1', name:'Finance VP（スポンサー）', dept:'Finance', note:'' },
+  { id:'s1', name:'Finance VP (Sponsor)', dept:'Finance', note:'' },
   { id:'s2', name:'Supply Chain VP', dept:'SCM', note:'' },
-  { id:'s3', name:'IT / システム運用チーム', dept:'IT', note:'' },
-  { id:'s4', name:'People Manager層', dept:'Finance/SCM', note:'' },
-  { id:'s5', name:'決算・経理チーム', dept:'Finance', note:'' },
-  { id:'s6', name:'調達・購買担当', dept:'SCM', note:'' },
-  { id:'s7', name:'現行レポートの実務保有者', dept:'Finance/SCM', note:'' },
-  { id:'s8', name:'AP / AR 処理担当', dept:'Finance', note:'' },
-  { id:'s9', name:'地域拠点のローカル財務', dept:'Finance', note:'' },
-  { id:'s10', name:'倉庫・物流オペレーション', dept:'SCM', note:'' },
-  { id:'s11', name:'社内監査・品質保証', dept:'Quality', note:'' },
-  { id:'s12', name:'営業サポート', dept:'Commercial', note:'' },
+  { id:'s3', name:'IT / Systems Operations', dept:'IT', note:'' },
+  { id:'s4', name:'People Managers', dept:'Finance/SCM', note:'' },
+  { id:'s5', name:'Financial Accounting Team', dept:'Finance', note:'' },
+  { id:'s6', name:'Procurement Team', dept:'SCM', note:'' },
+  { id:'s7', name:'Current Report Owners', dept:'Finance/SCM', note:'' },
+  { id:'s8', name:'AP / AR Processing', dept:'Finance', note:'' },
+  { id:'s9', name:'Regional / Local Finance', dept:'Finance', note:'' },
+  { id:'s10', name:'Warehouse & Logistics Ops', dept:'SCM', note:'' },
+  { id:'s11', name:'Internal Audit / QA', dept:'Quality', note:'' },
+  { id:'s12', name:'Sales Support', dept:'Commercial', note:'' },
 ];
 
 var INITIAL_SNAPSHOTS = [
   {
-    id:'snap1', date:'2025-04-01', label:'キックオフ時',
+    id:'snap1', date:'2025-04-01', label:'Kickoff',
     entries: [
       { stakeholderId:'s1', impact:2, influence:3, attitude:'推進' },
       { stakeholderId:'s2', impact:3, influence:3, attitude:'推進' },
@@ -519,7 +519,7 @@ var INITIAL_SNAPSHOTS = [
     ]
   },
   {
-    id:'snap2', date:'2025-09-01', label:'設計フェーズ完了',
+    id:'snap2', date:'2025-09-01', label:'Design Phase Complete',
     entries: [
       { stakeholderId:'s1', impact:2, influence:3, attitude:'推進' },
       { stakeholderId:'s2', impact:3, influence:3, attitude:'推進' },
@@ -536,7 +536,7 @@ var INITIAL_SNAPSHOTS = [
     ]
   },
   {
-    id:'snap3', date:'2026-01-15', label:'go-live 2ヶ月前',
+    id:'snap3', date:'2026-01-15', label:'2 Months Before Go-Live',
     entries: [
       { stakeholderId:'s1', impact:2, influence:3, attitude:'推進' },
       { stakeholderId:'s2', impact:3, influence:3, attitude:'推進' },
@@ -557,7 +557,7 @@ var INITIAL_SNAPSHOTS = [
 // ============================================================
 // STATE
 // ============================================================
-var state = { stakeholders: [], snapshots: [], currentSnapIndex: 0, showTrail: false, lang: 'ja' };
+var state = { stakeholders: [], snapshots: [], currentSnapIndex: 0, showTrail: false, lang: 'en' };
 
 var STORAGE_KEY = 'stakeholder-map-v1';
 
@@ -579,7 +579,7 @@ function loadState() {
       if (parsed && parsed.stakeholders && parsed.stakeholders.length > 0
           && parsed.snapshots && parsed.snapshots.length > 0) {
         state = parsed;
-        currentLang = state.lang || 'ja';
+        currentLang = state.lang || 'en';
         return;
       }
     }
@@ -589,7 +589,7 @@ function loadState() {
     snapshots: JSON.parse(JSON.stringify(INITIAL_SNAPSHOTS)),
     currentSnapIndex: 0,
     showTrail: false,
-    lang: 'ja'
+    lang: 'en'
   };
   saveState();
 }
