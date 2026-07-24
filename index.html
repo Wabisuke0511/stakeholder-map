@@ -785,8 +785,7 @@ function renderMap() {
           touchPinnedSid = shCopy.id;
           tooltipEl.innerHTML = buildTooltipHtml(shCopy, eCopy);
           tooltipEl.classList.remove('hidden');
-          var th = tooltipEl.offsetHeight || 80;
-          placeTooltip(touch.clientX, touch.clientY - th - 24);
+          placeTooltip(touch.clientX, touch.clientY);
         }
       }, { passive: false });
     })(sh, e);
