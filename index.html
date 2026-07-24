@@ -156,11 +156,9 @@ td select { font-size: 11px; padding: 2px 4px; border-radius: 3px; }
 .modal-field input { width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 7px 10px; font-size: 13px; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 .btn-cancel { background: #eef0f5; color: var(--text); border: none; border-radius: 4px; padding: 7px 16px; font-size: 13px; cursor: pointer; }
-.tooltip { position: fixed; background: rgba(30,39,97,0.95); color: white; border-radius: 6px; padding: 8px 12px; font-size: 13px; pointer-events: none; z-index: 50; white-space: nowrap; transition: opacity 0.1s; line-height: 1.6; box-shadow: 0 2px 12px rgba(0,0,0,0.25); }
-.tooltip.pinned { pointer-events: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
-.tt-name { font-size: 14px; font-weight: 700; display: block; margin-bottom: 2px; }
-.tt-close { float: right; margin-left: 12px; opacity: 0.7; cursor: pointer; font-size: 15px; line-height: 1; }
-.tt-close:hover { opacity: 1; }
+.tooltip { position: fixed; background: rgba(30,39,97,0.95); color: white; border-radius: 6px; padding: 8px 12px; font-size: 13px; pointer-events: none; z-index: 50; white-space: nowrap; line-height: 1.6; box-shadow: 0 2px 12px rgba(0,0,0,0.25); }
+.tooltip.hidden { display: none; }
+.tt-name { font-size: 14px; font-weight: 700; display: block; }
 </style>
 </head>
 <body>
@@ -751,7 +749,6 @@ function renderMap() {
 
   var currPos = computeSnapPositions(snap);
 
-  var lastTouchMs = 0;
   state.stakeholders.forEach(function(sh) {
     var e = getEntry(snap, sh.id);
     var pos = currPos[sh.id];
@@ -768,38 +765,31 @@ function renderMap() {
     // Large transparent hit area for easy tapping on mobile
     g.appendChild(svgEl('circle', { cx:x, cy:y, r:'22', fill:'transparent' }));
 
-    (function(shCopy, eCopy, px, py) {
-      // Desktop hover
+    (function(shCopy, eCopy) {
+      // PC: hover shows/hides automatically — no click needed
       g.addEventListener('mouseenter', function(ev) { showTooltip(ev, shCopy, eCopy); });
       g.addEventListener('mouseleave', hideTooltip);
-      g.addEventListener('mousemove', function(ev) { moveTooltip(ev); });
+      g.addEventListener('mousemove', moveTooltip);
 
-      // Touch — pin tooltip above the finger
+      // iPhone: tap to show; tap same dot again OR tap anywhere else to dismiss
       g.addEventListener('touchstart', function(ev) {
         ev.preventDefault();
-        ev.stopPropagation();
-        lastTouchMs = Date.now();
+        ev.stopPropagation(); // prevents document listener → keeps tooltip open
         var touch = ev.touches[0];
-        if (tooltipPinned && tooltipPinnedSid === shCopy.id) {
-          unpinTooltip();
+        if (touchPinned && touchPinnedSid === shCopy.id) {
+          touchPinned = false;
+          touchPinnedSid = null;
+          tooltipEl.classList.add('hidden');
         } else {
-          if (tooltipPinned) unpinTooltip();
-          pinTooltip(touch.clientX, touch.clientY - 70, shCopy, eCopy);
+          touchPinned = true;
+          touchPinnedSid = shCopy.id;
+          tooltipEl.innerHTML = buildTooltipHtml(shCopy, eCopy);
+          tooltipEl.classList.remove('hidden');
+          var th = tooltipEl.offsetHeight || 80;
+          placeTooltip(touch.clientX, touch.clientY - th - 24);
         }
       }, { passive: false });
-
-      // Click (desktop pin toggle; skipped on mobile where touch already handled it)
-      g.addEventListener('click', function(ev) {
-        if (Date.now() - lastTouchMs < 600) return;
-        ev.stopPropagation();
-        if (tooltipPinned && tooltipPinnedSid === shCopy.id) {
-          unpinTooltip();
-        } else {
-          if (tooltipPinned) unpinTooltip();
-          pinTooltip(ev.clientX, ev.clientY, shCopy, eCopy);
-        }
-      });
-    })(sh, e, x, y);
+    })(sh, e);
     svg.appendChild(g);
   });
 
@@ -823,14 +813,12 @@ function renderMap() {
 
 // Tooltip
 var tooltipEl = document.getElementById('tooltip');
-var tooltipPinned = false;
-var tooltipPinnedSid = null;
+var touchPinned = false;
+var touchPinnedSid = null;
 
-function buildTooltipHtml(sh, entry, pinned) {
+function buildTooltipHtml(sh, entry) {
   var q = quadrant(entry.influence, entry.impact);
-  var closeBtn = pinned ? '<span class="tt-close" id="tt-close-btn">✕</span>' : '';
-  return closeBtn
-    + '<span class="tt-name">' + sh.name + '</span>'
+  return '<span class="tt-name">' + sh.name + '</span>'
     + t('tooltipDept') + ': ' + sh.dept + '&nbsp;&nbsp;｜&nbsp;&nbsp;' + t(q) + '<br>'
     + 'Impact: ' + '★'.repeat(entry.impact) + '☆'.repeat(3 - entry.impact)
     + '&nbsp;&nbsp;Influence: ' + '★'.repeat(entry.influence) + '☆'.repeat(3 - entry.influence) + '<br>'
@@ -838,7 +826,7 @@ function buildTooltipHtml(sh, entry, pinned) {
 }
 
 function placeTooltip(cx, cy) {
-  var tw = tooltipEl.offsetWidth || 200;
+  var tw = tooltipEl.offsetWidth || 220;
   var th = tooltipEl.offsetHeight || 80;
   var margin = 12;
   var x = cx + 16;
@@ -851,42 +839,28 @@ function placeTooltip(cx, cy) {
 }
 
 function showTooltip(ev, sh, entry) {
-  if (tooltipPinned) return;
-  tooltipEl.classList.remove('hidden', 'pinned');
-  tooltipEl.innerHTML = buildTooltipHtml(sh, entry, false);
+  if (touchPinned) return;
+  tooltipEl.innerHTML = buildTooltipHtml(sh, entry);
+  tooltipEl.classList.remove('hidden');
   placeTooltip(ev.clientX, ev.clientY);
 }
 function moveTooltip(ev) {
-  if (tooltipPinned) return;
+  if (touchPinned) return;
   placeTooltip(ev.clientX, ev.clientY);
 }
 function hideTooltip() {
-  if (tooltipPinned) return;
-  tooltipEl.classList.add('hidden');
-}
-function pinTooltip(cx, cy, sh, entry) {
-  tooltipPinned = true;
-  tooltipPinnedSid = sh.id;
-  tooltipEl.classList.remove('hidden');
-  tooltipEl.classList.add('pinned');
-  tooltipEl.innerHTML = buildTooltipHtml(sh, entry, true);
-  placeTooltip(cx, cy);
-  var closeBtn = document.getElementById('tt-close-btn');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', function(e) { e.stopPropagation(); unpinTooltip(); });
-    closeBtn.addEventListener('touchend', function(e) { e.preventDefault(); e.stopPropagation(); unpinTooltip(); });
-  }
-}
-function unpinTooltip() {
-  tooltipPinned = false;
-  tooltipPinnedSid = null;
-  tooltipEl.classList.remove('pinned');
+  if (touchPinned) return;
   tooltipEl.classList.add('hidden');
 }
 
-// Dismiss pinned tooltip only when tapping/clicking OUTSIDE the tooltip itself
-document.addEventListener('click', function(ev) { if (tooltipPinned && !tooltipEl.contains(ev.target)) unpinTooltip(); });
-document.addEventListener('touchstart', function(ev) { if (tooltipPinned && !tooltipEl.contains(ev.target)) unpinTooltip(); }, { passive: true });
+// iPhone: tap anywhere outside a dot dismisses the pinned tooltip
+document.addEventListener('touchstart', function() {
+  if (touchPinned) {
+    touchPinned = false;
+    touchPinnedSid = null;
+    tooltipEl.classList.add('hidden');
+  }
+}, { passive: true });
 
 // ============================================================
 // CONTROLS
