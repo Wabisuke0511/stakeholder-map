@@ -156,7 +156,11 @@ td select { font-size: 11px; padding: 2px 4px; border-radius: 3px; }
 .modal-field input { width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 7px 10px; font-size: 13px; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 .btn-cancel { background: #eef0f5; color: var(--text); border: none; border-radius: 4px; padding: 7px 16px; font-size: 13px; cursor: pointer; }
-.tooltip { position: fixed; background: rgba(30,39,97,0.92); color: white; border-radius: 5px; padding: 6px 10px; font-size: 12px; pointer-events: none; z-index: 50; white-space: nowrap; transition: opacity 0.1s; }
+.tooltip { position: fixed; background: rgba(30,39,97,0.95); color: white; border-radius: 6px; padding: 8px 12px; font-size: 13px; pointer-events: none; z-index: 50; white-space: nowrap; transition: opacity 0.1s; line-height: 1.6; box-shadow: 0 2px 12px rgba(0,0,0,0.25); }
+.tooltip.pinned { pointer-events: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+.tt-name { font-size: 14px; font-weight: 700; display: block; margin-bottom: 2px; }
+.tt-close { float: right; margin-left: 12px; opacity: 0.7; cursor: pointer; font-size: 15px; line-height: 1; }
+.tt-close:hover { opacity: 1; }
 </style>
 </head>
 <body>
@@ -747,6 +751,7 @@ function renderMap() {
 
   var currPos = computeSnapPositions(snap);
 
+  var lastTouchMs = 0;
   state.stakeholders.forEach(function(sh) {
     var e = getEntry(snap, sh.id);
     var pos = currPos[sh.id];
@@ -760,12 +765,41 @@ function renderMap() {
     var iconT = svgEl('text', { x:x, y: y+3.5, 'text-anchor':'middle', fill:'white', 'font-size':'7', 'pointer-events':'none' });
     iconT.textContent = icon;
     g.appendChild(iconT);
+    // Large transparent hit area for easy tapping on mobile
+    g.appendChild(svgEl('circle', { cx:x, cy:y, r:'22', fill:'transparent' }));
 
-    (function(shCopy, eCopy) {
+    (function(shCopy, eCopy, px, py) {
+      // Desktop hover
       g.addEventListener('mouseenter', function(ev) { showTooltip(ev, shCopy, eCopy); });
       g.addEventListener('mouseleave', hideTooltip);
-      g.addEventListener('mousemove', moveTooltip);
-    })(sh, e);
+      g.addEventListener('mousemove', function(ev) { moveTooltip(ev); });
+
+      // Touch — pin tooltip above the finger
+      g.addEventListener('touchstart', function(ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        lastTouchMs = Date.now();
+        var touch = ev.touches[0];
+        if (tooltipPinned && tooltipPinnedSid === shCopy.id) {
+          unpinTooltip();
+        } else {
+          if (tooltipPinned) unpinTooltip();
+          pinTooltip(touch.clientX, touch.clientY - 70, shCopy, eCopy);
+        }
+      }, { passive: false });
+
+      // Click (desktop pin toggle; skipped on mobile where touch already handled it)
+      g.addEventListener('click', function(ev) {
+        if (Date.now() - lastTouchMs < 600) return;
+        ev.stopPropagation();
+        if (tooltipPinned && tooltipPinnedSid === shCopy.id) {
+          unpinTooltip();
+        } else {
+          if (tooltipPinned) unpinTooltip();
+          pinTooltip(ev.clientX, ev.clientY, shCopy, eCopy);
+        }
+      });
+    })(sh, e, x, y);
     svg.appendChild(g);
   });
 
@@ -789,20 +823,70 @@ function renderMap() {
 
 // Tooltip
 var tooltipEl = document.getElementById('tooltip');
-function showTooltip(ev, sh, entry) {
-  tooltipEl.classList.remove('hidden');
-  tooltipEl.innerHTML = '<strong>' + sh.name + '</strong><br>'
-    + t('tooltipDept') + ': ' + sh.dept + '<br>'
-    + 'Impact: ' + '★'.repeat(entry.impact) + '☆'.repeat(3-entry.impact)
-    + '&nbsp;Influence: ' + '★'.repeat(entry.influence) + '☆'.repeat(3-entry.influence) + '<br>'
+var tooltipPinned = false;
+var tooltipPinnedSid = null;
+
+function buildTooltipHtml(sh, entry, pinned) {
+  var q = quadrant(entry.influence, entry.impact);
+  var closeBtn = pinned ? '<span class="tt-close" id="tt-close-btn">✕</span>' : '';
+  return closeBtn
+    + '<span class="tt-name">' + sh.name + '</span>'
+    + t('tooltipDept') + ': ' + sh.dept + '&nbsp;&nbsp;｜&nbsp;&nbsp;' + t(q) + '<br>'
+    + 'Impact: ' + '★'.repeat(entry.impact) + '☆'.repeat(3 - entry.impact)
+    + '&nbsp;&nbsp;Influence: ' + '★'.repeat(entry.influence) + '☆'.repeat(3 - entry.influence) + '<br>'
     + t('tooltipAttitude') + ': ' + attDisplay(entry.attitude);
-  moveTooltip(ev);
+}
+
+function placeTooltip(cx, cy) {
+  var tw = tooltipEl.offsetWidth || 200;
+  var th = tooltipEl.offsetHeight || 80;
+  var margin = 12;
+  var x = cx + 16;
+  var y = cy - th / 2;
+  if (x + tw > window.innerWidth - margin) x = cx - tw - 16;
+  if (y < margin) y = margin;
+  if (y + th > window.innerHeight - margin) y = window.innerHeight - th - margin;
+  tooltipEl.style.left = x + 'px';
+  tooltipEl.style.top  = y + 'px';
+}
+
+function showTooltip(ev, sh, entry) {
+  if (tooltipPinned) return;
+  tooltipEl.classList.remove('hidden', 'pinned');
+  tooltipEl.innerHTML = buildTooltipHtml(sh, entry, false);
+  placeTooltip(ev.clientX, ev.clientY);
 }
 function moveTooltip(ev) {
-  tooltipEl.style.left = (ev.clientX + 14) + 'px';
-  tooltipEl.style.top = (ev.clientY - 8) + 'px';
+  if (tooltipPinned) return;
+  placeTooltip(ev.clientX, ev.clientY);
 }
-function hideTooltip() { tooltipEl.classList.add('hidden'); }
+function hideTooltip() {
+  if (tooltipPinned) return;
+  tooltipEl.classList.add('hidden');
+}
+function pinTooltip(cx, cy, sh, entry) {
+  tooltipPinned = true;
+  tooltipPinnedSid = sh.id;
+  tooltipEl.classList.remove('hidden');
+  tooltipEl.classList.add('pinned');
+  tooltipEl.innerHTML = buildTooltipHtml(sh, entry, true);
+  placeTooltip(cx, cy);
+  var closeBtn = document.getElementById('tt-close-btn');
+  if (closeBtn) closeBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    unpinTooltip();
+  });
+}
+function unpinTooltip() {
+  tooltipPinned = false;
+  tooltipPinnedSid = null;
+  tooltipEl.classList.remove('pinned');
+  tooltipEl.classList.add('hidden');
+}
+
+// Dismiss pinned tooltip when tapping/clicking outside a dot
+document.addEventListener('click', function() { if (tooltipPinned) unpinTooltip(); });
+document.addEventListener('touchstart', function() { if (tooltipPinned) unpinTooltip(); }, { passive: true });
 
 // ============================================================
 // CONTROLS
