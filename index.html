@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" id="html-root">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ステークホルダーマップ</title>
+<title>Stakeholder Map</title>
 <style>
 :root {
   --navy: #1E2761;
@@ -27,7 +27,14 @@ body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-s
 /* Header */
 .header { background: var(--navy); color: white; padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .header h1 { font-size: 16px; font-weight: 700; letter-spacing: 0.05em; flex-shrink: 0; }
-.privacy-note { font-size: 10px; color: rgba(255,255,255,0.55); margin-left: auto; flex-shrink: 0; }
+.header-sub { font-size: 12px; color: rgba(255,255,255,0.7); flex-shrink: 0; }
+.privacy-note { font-size: 10px; color: rgba(255,255,255,0.55); flex-shrink: 0; }
+
+/* Language switcher */
+.lang-switcher { display: flex; gap: 4px; margin-left: auto; }
+.lang-btn { background: transparent; border: 1px solid rgba(255,255,255,0.35); color: rgba(255,255,255,0.65); border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; transition: all 0.15s; }
+.lang-btn.active { background: rgba(255,255,255,0.18); color: #fff; border-color: rgba(255,255,255,0.85); font-weight: 700; }
+.lang-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
 
 /* Control bar */
 .controls { background: var(--white); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
@@ -82,8 +89,9 @@ td select { font-size: 11px; padding: 2px 4px; border-radius: 3px; }
   /* Header */
   .header { padding: 10px 14px; gap: 8px; }
   .header h1 { font-size: 14px; }
-  .header > span:nth-child(2) { display: none; }
+  .header-sub { display: none; }
   .privacy-note { font-size: 9px; }
+  .lang-btn { font-size: 10px; padding: 2px 6px; }
 
   /* Controls: stack into 2 rows */
   .controls { padding: 8px 12px; gap: 8px; }
@@ -155,23 +163,29 @@ td select { font-size: 11px; padding: 2px 4px; border-radius: 3px; }
 
 <div id="js-error" style="display:none;background:#c0392b;color:#fff;padding:10px 16px;font-size:13px;font-family:monospace;white-space:pre-wrap;"></div>
 <div class="header">
-  <h1>ステークホルダーマップ</h1>
-  <span style="font-size:12px;color:rgba(255,255,255,0.7)">組織変革 推進状況の可視化</span>
-  <span class="privacy-note">🔒 すべてのデータはこのブラウザ内にのみ保存されます。外部通信なし。</span>
+  <h1 id="app-title">ステークホルダーマップ</h1>
+  <span class="header-sub" id="app-subtitle">組織変革 推進状況の可視化</span>
+  <span class="privacy-note" id="app-privacy">🔒 すべてのデータはこのブラウザ内にのみ保存されます。外部通信なし。</span>
+  <div class="lang-switcher">
+    <button class="lang-btn active" id="btn-ja" onclick="setLang('ja')">日本語</button>
+    <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="btn-zh" onclick="setLang('zh')">中文</button>
+    <button class="lang-btn" id="btn-de" onclick="setLang('de')">DE</button>
+  </div>
 </div>
 
 <div class="controls">
   <div class="control-group">
-    <label>スナップショット</label>
+    <label id="lbl-snapshot">スナップショット</label>
     <select id="snapshotSelect"></select>
   </div>
   <div class="control-group">
-    <label>タイムライン</label>
+    <label id="lbl-timeline">タイムライン</label>
     <input type="range" id="timelineSlider" min="0" max="0" value="0" step="1">
     <span class="snapshot-label" id="sliderLabel"></span>
   </div>
   <label class="trail-check">
-    <input type="checkbox" id="trailCheck"> 軌跡を表示
+    <input type="checkbox" id="trailCheck"> <span id="lbl-trail">軌跡を表示</span>
   </label>
   <button class="btn" id="newSnapshotBtn">＋ 新しいスナップショット</button>
 </div>
@@ -193,12 +207,12 @@ td select { font-size: 11px; padding: 2px 4px; border-radius: 3px; }
       <table id="stakeholderTable">
         <thead>
           <tr>
-            <th>変化</th>
-            <th>群名</th>
-            <th>部門</th>
-            <th>Impact</th>
-            <th>Influence</th>
-            <th>態度</th>
+            <th id="th-change">変化</th>
+            <th id="th-name">群名</th>
+            <th id="th-dept">部門</th>
+            <th id="th-impact">Impact</th>
+            <th id="th-influence">Influence</th>
+            <th id="th-attitude">態度</th>
             <th></th>
           </tr>
         </thead>
@@ -214,20 +228,20 @@ td select { font-size: 11px; padding: 2px 4px; border-radius: 3px; }
 </div>
 
 <div class="summary" id="summarySection">
-  <h2>サマリー</h2>
+  <h2 id="summary-title">サマリー</h2>
   <div class="summary-grid" id="summaryGrid"></div>
 </div>
 
 <!-- New snapshot modal -->
 <div class="modal-overlay hidden" id="modalOverlay">
   <div class="modal">
-    <h2>新しいスナップショットを作成</h2>
+    <h2 id="modal-title">新しいスナップショットを作成</h2>
     <div class="modal-field">
-      <label>日付</label>
+      <label id="modal-date-lbl">日付</label>
       <input type="date" id="modalDate">
     </div>
     <div class="modal-field">
-      <label>ラベル（例：設計フェーズ完了）</label>
+      <label id="modal-label-lbl">ラベル（例：設計フェーズ完了）</label>
       <input type="text" id="modalLabel" placeholder="ラベルを入力">
     </div>
     <div class="modal-actions">
@@ -242,12 +256,236 @@ td select { font-size: 11px; padding: 2px 4px; border-radius: 3px; }
 
 <script>
 // ============================================================
+// I18N
+// ============================================================
+var LANGS = {
+  ja: {
+    title: 'ステークホルダーマップ',
+    subtitle: '組織変革 推進状況の可視化',
+    privacy: '🔒 すべてのデータはこのブラウザ内にのみ保存されます。外部通信なし。',
+    lSnapshot: 'スナップショット',
+    lTimeline: 'タイムライン',
+    lTrail: '軌跡を表示',
+    btnNew: '＋ 新しいスナップショット',
+    btnDelete: 'このスナップショットを削除',
+    thChange: '変化', thName: '群名', thDept: '部門',
+    thImpact: 'Impact', thInfluence: 'Influence', thAttitude: '態度',
+    phName: '群名 ※個人名は入力しないでください',
+    phDept: '部門',
+    btnAdd: '追加',
+    summaryTitle: 'サマリー',
+    cardAttitude: '態度の内訳',
+    cardQuadrant: '象限ごとの群数',
+    cardDiff: '前回との差分',
+    firstSnap: '最初のスナップショットです',
+    noChange: '変化なし',
+    modalTitle: '新しいスナップショットを作成',
+    modalDate: '日付',
+    modalLabelLbl: 'ラベル（例：設計フェーズ完了）',
+    modalLabelPh: 'ラベルを入力',
+    btnCancel: 'キャンセル',
+    btnCreate: '作成',
+    alertDateLabel: '日付とラベルを入力してください',
+    alertOnlyOne: 'スナップショットが1つしかないため削除できません',
+    alertAddName: '群名を入力してください',
+    confirmDeleteSnap1: '「', confirmDeleteSnap2: '」を削除しますか？',
+    confirmDeleteGroup: 'この群を削除しますか？全スナップショットから削除されます。',
+    attPromote: '推進', attNeutral: '中立', attResist: '抵抗',
+    tooltipDept: '部門', tooltipAttitude: '態度',
+    ttlImprove: '改善', ttlWorsen: '悪化',
+    xAxis: 'Influence（影響力）→',
+    yAxis: '← Impact（影響度）',
+    q1: '巻き込む', q2: '味方につける', q3: '支える', q4: '知らせる',
+    axisLow: 'Low', axisMed: 'Med', axisMedium: 'Medium', axisHigh: 'High',
+    deptDefault: '未設定',
+    htmlLang: 'ja'
+  },
+  en: {
+    title: 'Stakeholder Map',
+    subtitle: 'Change Management — Engagement Tracker',
+    privacy: '🔒 All data is stored in this browser only. No external communication.',
+    lSnapshot: 'Snapshot',
+    lTimeline: 'Timeline',
+    lTrail: 'Show trails',
+    btnNew: '＋ New Snapshot',
+    btnDelete: 'Delete snapshot',
+    thChange: 'Δ', thName: 'Group', thDept: 'Dept',
+    thImpact: 'Impact', thInfluence: 'Influence', thAttitude: 'Attitude',
+    phName: 'Group name (no personal names)',
+    phDept: 'Dept',
+    btnAdd: 'Add',
+    summaryTitle: 'Summary',
+    cardAttitude: 'Attitude breakdown',
+    cardQuadrant: 'Groups per quadrant',
+    cardDiff: 'Change from last snapshot',
+    firstSnap: 'This is the first snapshot.',
+    noChange: 'No change',
+    modalTitle: 'Create New Snapshot',
+    modalDate: 'Date',
+    modalLabelLbl: 'Label (e.g. Design phase complete)',
+    modalLabelPh: 'Enter label',
+    btnCancel: 'Cancel',
+    btnCreate: 'Create',
+    alertDateLabel: 'Please enter a date and label.',
+    alertOnlyOne: 'Cannot delete — only one snapshot exists.',
+    alertAddName: 'Please enter a group name.',
+    confirmDeleteSnap1: 'Delete "', confirmDeleteSnap2: '"?',
+    confirmDeleteGroup: 'Delete this group? It will be removed from all snapshots.',
+    attPromote: 'Champion', attNeutral: 'Neutral', attResist: 'Resistant',
+    tooltipDept: 'Dept', tooltipAttitude: 'Attitude',
+    ttlImprove: 'Improved', ttlWorsen: 'Declined',
+    xAxis: 'Influence →',
+    yAxis: '← Impact',
+    q1: 'Engage', q2: 'Win Over', q3: 'Support', q4: 'Inform',
+    axisLow: 'Low', axisMed: 'Med', axisMedium: 'Medium', axisHigh: 'High',
+    deptDefault: 'TBD',
+    htmlLang: 'en'
+  },
+  zh: {
+    title: '利益相关方地图',
+    subtitle: '组织变革 · 推进状态可视化',
+    privacy: '🔒 所有数据仅保存在本浏览器中。无外部通信。',
+    lSnapshot: '快照',
+    lTimeline: '时间线',
+    lTrail: '显示轨迹',
+    btnNew: '＋ 新建快照',
+    btnDelete: '删除此快照',
+    thChange: '变化', thName: '群组', thDept: '部门',
+    thImpact: '影响度', thInfluence: '影响力', thAttitude: '态度',
+    phName: '群组名称（请勿填写个人姓名）',
+    phDept: '部门',
+    btnAdd: '添加',
+    summaryTitle: '摘要',
+    cardAttitude: '态度分布',
+    cardQuadrant: '各象限群组数',
+    cardDiff: '与上次快照的变化',
+    firstSnap: '这是第一个快照。',
+    noChange: '无变化',
+    modalTitle: '创建新快照',
+    modalDate: '日期',
+    modalLabelLbl: '标签（例：设计阶段完成）',
+    modalLabelPh: '请输入标签',
+    btnCancel: '取消',
+    btnCreate: '创建',
+    alertDateLabel: '请输入日期和标签。',
+    alertOnlyOne: '无法删除——只剩一个快照。',
+    alertAddName: '请输入群组名称。',
+    confirmDeleteSnap1: '确定删除"', confirmDeleteSnap2: '"吗？',
+    confirmDeleteGroup: '删除此群组？将从所有快照中移除。',
+    attPromote: '推进', attNeutral: '中立', attResist: '抵制',
+    tooltipDept: '部门', tooltipAttitude: '态度',
+    ttlImprove: '改善', ttlWorsen: '恶化',
+    xAxis: '影响力 →',
+    yAxis: '← 影响度',
+    q1: '重点参与', q2: '争取支持', q3: '给予支持', q4: '及时告知',
+    axisLow: '低', axisMed: '中', axisMedium: '中等', axisHigh: '高',
+    deptDefault: '未设置',
+    htmlLang: 'zh-CN'
+  },
+  de: {
+    title: 'Stakeholder-Karte',
+    subtitle: 'Change Management — Engagement-Übersicht',
+    privacy: '🔒 Alle Daten werden nur in diesem Browser gespeichert. Keine externe Kommunikation.',
+    lSnapshot: 'Snapshot',
+    lTimeline: 'Zeitlinie',
+    lTrail: 'Verlauf anzeigen',
+    btnNew: '＋ Neuer Snapshot',
+    btnDelete: 'Snapshot löschen',
+    thChange: 'Δ', thName: 'Gruppe', thDept: 'Abt.',
+    thImpact: 'Impact', thInfluence: 'Einfluss', thAttitude: 'Haltung',
+    phName: 'Gruppenname (keine Personennamen)',
+    phDept: 'Abt.',
+    btnAdd: 'Hinzufügen',
+    summaryTitle: 'Zusammenfassung',
+    cardAttitude: 'Haltungsverteilung',
+    cardQuadrant: 'Gruppen je Quadrant',
+    cardDiff: 'Änderung seit letztem Snapshot',
+    firstSnap: 'Dies ist der erste Snapshot.',
+    noChange: 'Keine Änderung',
+    modalTitle: 'Neuen Snapshot erstellen',
+    modalDate: 'Datum',
+    modalLabelLbl: 'Label (z. B. Design-Phase abgeschlossen)',
+    modalLabelPh: 'Label eingeben',
+    btnCancel: 'Abbrechen',
+    btnCreate: 'Erstellen',
+    alertDateLabel: 'Bitte Datum und Label eingeben.',
+    alertOnlyOne: 'Löschen nicht möglich — nur ein Snapshot vorhanden.',
+    alertAddName: 'Bitte Gruppenname eingeben.',
+    confirmDeleteSnap1: '"', confirmDeleteSnap2: '" löschen?',
+    confirmDeleteGroup: 'Diese Gruppe löschen? Sie wird aus allen Snapshots entfernt.',
+    attPromote: 'Befürworter', attNeutral: 'Neutral', attResist: 'Widerstand',
+    tooltipDept: 'Abt.', tooltipAttitude: 'Haltung',
+    ttlImprove: 'Verbessert', ttlWorsen: 'Verschlechtert',
+    xAxis: 'Einfluss →',
+    yAxis: '← Impact',
+    q1: 'Einbinden', q2: 'Gewinnen', q3: 'Unterstützen', q4: 'Informieren',
+    axisLow: 'Niedrig', axisMed: 'Mittel', axisMedium: 'Mittel', axisHigh: 'Hoch',
+    deptDefault: 'Unbekannt',
+    htmlLang: 'de'
+  }
+};
+
+var currentLang = 'ja';
+
+function t(key) {
+  var lang = LANGS[currentLang] || LANGS.ja;
+  var v = lang[key];
+  if (v === undefined) v = LANGS.ja[key];
+  return (v !== undefined) ? v : key;
+}
+
+function applyLang() {
+  document.getElementById('html-root').lang = t('htmlLang');
+  document.getElementById('app-title').textContent = t('title');
+  document.getElementById('app-subtitle').textContent = t('subtitle');
+  document.getElementById('app-privacy').textContent = t('privacy');
+  document.getElementById('lbl-snapshot').textContent = t('lSnapshot');
+  document.getElementById('lbl-timeline').textContent = t('lTimeline');
+  document.getElementById('lbl-trail').textContent = t('lTrail');
+  document.getElementById('newSnapshotBtn').textContent = t('btnNew');
+  document.getElementById('deleteSnapshotBtn').textContent = t('btnDelete');
+  document.getElementById('th-change').textContent = t('thChange');
+  document.getElementById('th-name').textContent = t('thName');
+  document.getElementById('th-dept').textContent = t('thDept');
+  document.getElementById('th-impact').textContent = t('thImpact');
+  document.getElementById('th-influence').textContent = t('thInfluence');
+  document.getElementById('th-attitude').textContent = t('thAttitude');
+  document.getElementById('newName').placeholder = t('phName');
+  document.getElementById('newDept').placeholder = t('phDept');
+  document.getElementById('addStakeholderBtn').textContent = t('btnAdd');
+  document.getElementById('summary-title').textContent = t('summaryTitle');
+  document.getElementById('modal-title').textContent = t('modalTitle');
+  document.getElementById('modal-date-lbl').textContent = t('modalDate');
+  document.getElementById('modal-label-lbl').textContent = t('modalLabelLbl');
+  document.getElementById('modalLabel').placeholder = t('modalLabelPh');
+  document.getElementById('modalCancel').textContent = t('btnCancel');
+  document.getElementById('modalCreate').textContent = t('btnCreate');
+  ['ja','en','zh','de'].forEach(function(l) {
+    var btn = document.getElementById('btn-' + l);
+    if (btn) btn.className = 'lang-btn' + (l === currentLang ? ' active' : '');
+  });
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  state.lang = lang;
+  saveState();
+  applyLang();
+  renderAll();
+}
+
+// ============================================================
 // DATA
 // ============================================================
-const ATTITUDES = ['推進', '中立', '抵抗'];
-const ATT_COLOR = { '推進': '#2E7D5B', '中立': '#9AA3B2', '抵抗': '#B0413E' };
+var ATTITUDES = ['推進', '中立', '抵抗'];
+var ATT_COLOR = { '推進': '#2E7D5B', '中立': '#9AA3B2', '抵抗': '#B0413E' };
 
-const INITIAL_STAKEHOLDERS = [
+function attDisplay(code) {
+  var map = { '推進': t('attPromote'), '中立': t('attNeutral'), '抵抗': t('attResist') };
+  return map[code] || code;
+}
+
+var INITIAL_STAKEHOLDERS = [
   { id:'s1', name:'Finance VP（スポンサー）', dept:'Finance', note:'' },
   { id:'s2', name:'Supply Chain VP', dept:'SCM', note:'' },
   { id:'s3', name:'IT / システム運用チーム', dept:'IT', note:'' },
@@ -262,7 +500,7 @@ const INITIAL_STAKEHOLDERS = [
   { id:'s12', name:'営業サポート', dept:'Commercial', note:'' },
 ];
 
-const INITIAL_SNAPSHOTS = [
+var INITIAL_SNAPSHOTS = [
   {
     id:'snap1', date:'2025-04-01', label:'キックオフ時',
     entries: [
@@ -319,7 +557,7 @@ const INITIAL_SNAPSHOTS = [
 // ============================================================
 // STATE
 // ============================================================
-let state = { stakeholders: [], snapshots: [], currentSnapIndex: 0, showTrail: false };
+var state = { stakeholders: [], snapshots: [], currentSnapIndex: 0, showTrail: false, lang: 'ja' };
 
 var STORAGE_KEY = 'stakeholder-map-v1';
 
@@ -341,6 +579,7 @@ function loadState() {
       if (parsed && parsed.stakeholders && parsed.stakeholders.length > 0
           && parsed.snapshots && parsed.snapshots.length > 0) {
         state = parsed;
+        currentLang = state.lang || 'ja';
         return;
       }
     }
@@ -349,31 +588,37 @@ function loadState() {
     stakeholders: JSON.parse(JSON.stringify(INITIAL_STAKEHOLDERS)),
     snapshots: JSON.parse(JSON.stringify(INITIAL_SNAPSHOTS)),
     currentSnapIndex: 0,
-    showTrail: false
+    showTrail: false,
+    lang: 'ja'
   };
   saveState();
 }
 
 function saveState() {
-  try { storageSet(JSON.stringify(state)); } catch(e) {}
+  try { state.lang = currentLang; storageSet(JSON.stringify(state)); } catch(e) {}
 }
 
 function currentSnap() { return state.snapshots[state.currentSnapIndex]; }
 function prevSnap() { return state.currentSnapIndex > 0 ? state.snapshots[state.currentSnapIndex - 1] : null; }
 
-function getEntry(snap, sid) { return snap ? snap.entries.find(e => e.stakeholderId === sid) : null; }
+function getEntry(snap, sid) {
+  if (!snap) return null;
+  for (var i = 0; i < snap.entries.length; i++) {
+    if (snap.entries[i].stakeholderId === sid) return snap.entries[i];
+  }
+  return null;
+}
 
 // ============================================================
 // SVG MAP — cell sub-grid positioning
 // ============================================================
-const SVG_W = 560, SVG_H = 460;
-const MARGIN = { top: 28, right: 18, bottom: 46, left: 52 };
-const PLOT_W = SVG_W - MARGIN.left - MARGIN.right;
-const PLOT_H = SVG_H - MARGIN.top - MARGIN.bottom;
+var SVG_W = 560, SVG_H = 460;
+var MARGIN = { top: 28, right: 18, bottom: 46, left: 52 };
+var PLOT_W = SVG_W - MARGIN.left - MARGIN.right;
+var PLOT_H = SVG_H - MARGIN.top - MARGIN.bottom;
 
-// Returns {dx, dy} offsets from cell center for N dots arranged without overlap
 function getSubOffsets(n) {
-  const S = 26;
+  var S = 26;
   if (n <= 1) return [{dx:0, dy:0}];
   if (n === 2) return [{dx:-S*0.5, dy:0}, {dx:S*0.5, dy:0}];
   if (n === 3) return [
@@ -385,39 +630,38 @@ function getSubOffsets(n) {
     {dx:-S*0.5, dy:-S*0.5}, {dx:S*0.5, dy:-S*0.5},
     {dx:-S*0.5, dy: S*0.5}, {dx:S*0.5, dy: S*0.5}
   ];
-  // 5+: evenly spaced on a circle
-  return Array.from({length:n}, (_, i) => {
-    const a = (i/n)*2*Math.PI - Math.PI/2;
+  return Array.from({length:n}, function(_, i) {
+    var a = (i/n)*2*Math.PI - Math.PI/2;
     return {dx: Math.cos(a)*S*0.8, dy: Math.sin(a)*S*0.8};
   });
 }
 
-// Compute pixel positions for every stakeholder in a given snapshot
 function computeSnapPositions(snap) {
   if (!snap) return {};
-  const cellW = PLOT_W / 3;
-  const cellH = PLOT_H / 3;
-
-  // Group entries by cell, sorted by id for determinism
-  const cellGroups = {};
-  snap.entries.forEach(e => {
-    const key = `${e.influence}_${e.impact}`;
+  var cellW = PLOT_W / 3;
+  var cellH = PLOT_H / 3;
+  var cellGroups = {};
+  snap.entries.forEach(function(e) {
+    var key = e.influence + '_' + e.impact;
     if (!cellGroups[key]) cellGroups[key] = [];
     cellGroups[key].push(e);
   });
-  Object.values(cellGroups).forEach(g => g.sort((a, b) => a.stakeholderId.localeCompare(b.stakeholderId)));
-
-  const positions = {};
-  Object.entries(cellGroups).forEach(([key, group]) => {
-    const [inf, imp] = key.split('_').map(Number);
-    const cx = MARGIN.left + (inf - 1) * cellW + cellW / 2;
-    const cy = MARGIN.top  + (3 - imp) * cellH + cellH / 2;
-    const offsets = getSubOffsets(group.length);
-    group.forEach((e, i) => {
+  Object.values(cellGroups).forEach(function(g) {
+    g.sort(function(a, b) { return a.stakeholderId.localeCompare(b.stakeholderId); });
+  });
+  var positions = {};
+  Object.entries(cellGroups).forEach(function(kv) {
+    var key = kv[0], group = kv[1];
+    var parts = key.split('_').map(Number);
+    var inf = parts[0], imp = parts[1];
+    var cx = MARGIN.left + (inf - 1) * cellW + cellW / 2;
+    var cy = MARGIN.top  + (3 - imp) * cellH + cellH / 2;
+    var offsets = getSubOffsets(group.length);
+    group.forEach(function(e, i) {
       positions[e.stakeholderId] = {
         x: cx + offsets[i].dx,
         y: cy + offsets[i].dy,
-        dx: offsets[i].dx   // used for label side decision
+        dx: offsets[i].dx
       };
     });
   });
@@ -425,37 +669,36 @@ function computeSnapPositions(snap) {
 }
 
 function svgEl(tag, attrs) {
-  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
-  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  Object.keys(attrs).forEach(function(k) { el.setAttribute(k, attrs[k]); });
   return el;
 }
 
 function renderMap() {
-  const svg = document.getElementById('mapSvg');
+  var svg = document.getElementById('mapSvg');
   svg.innerHTML = '';
 
-  const snap = currentSnap();
+  var snap = currentSnap();
   if (!snap) return;
 
-  // Quadrant backgrounds
-  const quads = [
-    { x: MARGIN.left + PLOT_W/2, y: MARGIN.top,           w: PLOT_W/2, h: PLOT_H/2, fill:'var(--q1-bg)', label:'巻き込む' },
-    { x: MARGIN.left + PLOT_W/2, y: MARGIN.top + PLOT_H/2, w: PLOT_W/2, h: PLOT_H/2, fill:'var(--q2-bg)', label:'味方につける' },
-    { x: MARGIN.left,            y: MARGIN.top,           w: PLOT_W/2, h: PLOT_H/2, fill:'var(--q3-bg)', label:'支える' },
-    { x: MARGIN.left,            y: MARGIN.top + PLOT_H/2, w: PLOT_W/2, h: PLOT_H/2, fill:'var(--q4-bg)', label:'知らせる' },
+  var quads = [
+    { x: MARGIN.left + PLOT_W/2, y: MARGIN.top,            w: PLOT_W/2, h: PLOT_H/2, fill:'var(--q1-bg)', label: t('q1') },
+    { x: MARGIN.left + PLOT_W/2, y: MARGIN.top + PLOT_H/2, w: PLOT_W/2, h: PLOT_H/2, fill:'var(--q2-bg)', label: t('q2') },
+    { x: MARGIN.left,            y: MARGIN.top,            w: PLOT_W/2, h: PLOT_H/2, fill:'var(--q3-bg)', label: t('q3') },
+    { x: MARGIN.left,            y: MARGIN.top + PLOT_H/2, w: PLOT_W/2, h: PLOT_H/2, fill:'var(--q4-bg)', label: t('q4') },
   ];
-  quads.forEach(q => {
+  quads.forEach(function(q) {
     svg.appendChild(svgEl('rect', { x:q.x, y:q.y, width:q.w, height:q.h, fill:q.fill }));
-    const t = svgEl('text', { x: q.x + q.w/2, y: q.y + 18, 'text-anchor':'middle', fill:'#aab0c4', 'font-size':'12', 'font-weight':'600', 'pointer-events':'none' });
-    t.textContent = q.label;
-    svg.appendChild(t);
+    var tEl = svgEl('text', { x: q.x + q.w/2, y: q.y + 18, 'text-anchor':'middle', fill:'#aab0c4', 'font-size':'12', 'font-weight':'600', 'pointer-events':'none' });
+    tEl.textContent = q.label;
+    svg.appendChild(tEl);
   });
 
   // Grid lines
-  for (let i = 1; i <= 2; i++) {
-    const x = MARGIN.left + (PLOT_W / 3) * i;
+  for (var i = 1; i <= 2; i++) {
+    var x = MARGIN.left + (PLOT_W / 3) * i;
     svg.appendChild(svgEl('line', { x1:x, y1:MARGIN.top, x2:x, y2:MARGIN.top+PLOT_H, stroke:'#d0d4e0', 'stroke-width':'1', 'stroke-dasharray':'4,4' }));
-    const y = MARGIN.top + (PLOT_H / 3) * i;
+    var y = MARGIN.top + (PLOT_H / 3) * i;
     svg.appendChild(svgEl('line', { x1:MARGIN.left, y1:y, x2:MARGIN.left+PLOT_W, y2:y, stroke:'#d0d4e0', 'stroke-width':'1', 'stroke-dasharray':'4,4' }));
   }
 
@@ -463,94 +706,96 @@ function renderMap() {
   svg.appendChild(svgEl('rect', { x:MARGIN.left, y:MARGIN.top, width:PLOT_W, height:PLOT_H, fill:'none', stroke:'#b0b8cc', 'stroke-width':'1.5' }));
 
   // Axis tick labels
-  const axisStyle = { fill:'#5a6280', 'font-size':'11', 'font-weight':'600' };
-  ['Low','Medium','High'].forEach((lbl, i) => {
-    const x = MARGIN.left + i * (PLOT_W/3) + PLOT_W/6;
-    const t = svgEl('text', { x, y: MARGIN.top + PLOT_H + 17, 'text-anchor':'middle', ...axisStyle });
-    t.textContent = lbl; svg.appendChild(t);
+  var axisStyle = { fill:'#5a6280', 'font-size':'11', 'font-weight':'600' };
+  [t('axisLow'), t('axisMedium'), t('axisHigh')].forEach(function(lbl, idx) {
+    var px = MARGIN.left + idx * (PLOT_W/3) + PLOT_W/6;
+    var tEl = svgEl('text', Object.assign({ x:px, y: MARGIN.top + PLOT_H + 17, 'text-anchor':'middle' }, axisStyle));
+    tEl.textContent = lbl; svg.appendChild(tEl);
   });
-  ['Low','Med','High'].forEach((lbl, i) => {
-    const y = MARGIN.top + (2 - i) * (PLOT_H/3) + PLOT_H/6;
-    const t = svgEl('text', { x: MARGIN.left - 6, y: y + 4, 'text-anchor':'end', ...axisStyle });
-    t.textContent = lbl; svg.appendChild(t);
+  [t('axisLow'), t('axisMed'), t('axisHigh')].forEach(function(lbl, idx) {
+    var py = MARGIN.top + (2 - idx) * (PLOT_H/3) + PLOT_H/6;
+    var tEl = svgEl('text', Object.assign({ x: MARGIN.left - 6, y: py + 4, 'text-anchor':'end' }, axisStyle));
+    tEl.textContent = lbl; svg.appendChild(tEl);
   });
 
   // Axis titles
-  const xLabel = svgEl('text', { x: MARGIN.left + PLOT_W/2, y: SVG_H - 4, 'text-anchor':'middle', fill:'#1E2761', 'font-size':'12', 'font-weight':'700' });
-  xLabel.textContent = 'Influence（影響力）→'; svg.appendChild(xLabel);
-  const yLabel = svgEl('text', { x: 13, y: MARGIN.top + PLOT_H/2, 'text-anchor':'middle', fill:'#1E2761', 'font-size':'12', 'font-weight':'700', transform:`rotate(-90,13,${MARGIN.top + PLOT_H/2})` });
-  yLabel.textContent = '← Impact（影響度）'; svg.appendChild(yLabel);
+  var xLabel = svgEl('text', { x: MARGIN.left + PLOT_W/2, y: SVG_H - 4, 'text-anchor':'middle', fill:'#1E2761', 'font-size':'12', 'font-weight':'700' });
+  xLabel.textContent = t('xAxis'); svg.appendChild(xLabel);
+  var yLabel = svgEl('text', { x: 13, y: MARGIN.top + PLOT_H/2, 'text-anchor':'middle', fill:'#1E2761', 'font-size':'12', 'font-weight':'700', transform:'rotate(-90,13,' + (MARGIN.top + PLOT_H/2) + ')' });
+  yLabel.textContent = t('yAxis'); svg.appendChild(yLabel);
 
-  const trailOn = state.showTrail;
-  const allSnaps = state.snapshots;
-  const currentIdx = state.currentSnapIndex;
+  var trailOn = state.showTrail;
+  var allSnaps = state.snapshots;
+  var currentIdx = state.currentSnapIndex;
 
-  // Trail: lines + ghost dots using sub-grid positions per snapshot
   if (trailOn && currentIdx > 0) {
-    state.stakeholders.forEach(sh => {
-      const pts = [];
-      for (let i = 0; i <= currentIdx; i++) {
-        const pos = computeSnapPositions(allSnaps[i]);
-        const e = getEntry(allSnaps[i], sh.id);
-        if (pos[sh.id] && e) pts.push({ ...pos[sh.id], att: e.attitude });
+    state.stakeholders.forEach(function(sh) {
+      var pts = [];
+      for (var ti = 0; ti <= currentIdx; ti++) {
+        var pos = computeSnapPositions(allSnaps[ti]);
+        var e = getEntry(allSnaps[ti], sh.id);
+        if (pos[sh.id] && e) pts.push({ x: pos[sh.id].x, y: pos[sh.id].y, att: e.attitude });
       }
-      for (let i = 0; i < pts.length - 1; i++) {
-        svg.appendChild(svgEl('line', { x1:pts[i].x, y1:pts[i].y, x2:pts[i+1].x, y2:pts[i+1].y, stroke:'#8892b0', 'stroke-width':'1.5', 'stroke-dasharray':'5,3', opacity:'0.5' }));
+      for (var ti = 0; ti < pts.length - 1; ti++) {
+        svg.appendChild(svgEl('line', { x1:pts[ti].x, y1:pts[ti].y, x2:pts[ti+1].x, y2:pts[ti+1].y, stroke:'#8892b0', 'stroke-width':'1.5', 'stroke-dasharray':'5,3', opacity:'0.5' }));
       }
-      for (let i = 0; i < pts.length - 1; i++) {
-        svg.appendChild(svgEl('circle', { cx:pts[i].x, cy:pts[i].y, r:'5', fill: ATT_COLOR[pts[i].att] || '#999', opacity: String(0.18 + i * 0.1) }));
+      for (var ti = 0; ti < pts.length - 1; ti++) {
+        svg.appendChild(svgEl('circle', { cx:pts[ti].x, cy:pts[ti].y, r:'5', fill: ATT_COLOR[pts[ti].att] || '#999', opacity: String(0.18 + ti * 0.1) }));
       }
     });
   }
 
-  // Current snapshot positions
-  const currPos = computeSnapPositions(snap);
+  var currPos = computeSnapPositions(snap);
 
-  // Draw dots
-  state.stakeholders.forEach(sh => {
-    const e = getEntry(snap, sh.id);
-    const pos = currPos[sh.id];
+  state.stakeholders.forEach(function(sh) {
+    var e = getEntry(snap, sh.id);
+    var pos = currPos[sh.id];
     if (!e || !pos) return;
-    const { x, y } = pos;
-    const color = ATT_COLOR[e.attitude] || '#999';
+    var x = pos.x, y = pos.y;
+    var color = ATT_COLOR[e.attitude] || '#999';
 
-    const g = svgEl('g', { 'data-sid': sh.id, style:'cursor:pointer' });
+    var g = svgEl('g', { 'data-sid': sh.id, style:'cursor:pointer' });
     g.appendChild(svgEl('circle', { cx:x, cy:y, r:'8', fill:color, stroke:'white', 'stroke-width':'2' }));
-    const icon = { '推進':'▲', '中立':'●', '抵抗':'▼' }[e.attitude] || '●';
-    const iconT = svgEl('text', { x, y: y+3.5, 'text-anchor':'middle', fill:'white', 'font-size':'7', 'pointer-events':'none' });
+    var icon = { '推進':'▲', '中立':'●', '抵抗':'▼' }[e.attitude] || '●';
+    var iconT = svgEl('text', { x:x, y: y+3.5, 'text-anchor':'middle', fill:'white', 'font-size':'7', 'pointer-events':'none' });
     iconT.textContent = icon;
     g.appendChild(iconT);
 
-    g.addEventListener('mouseenter', ev => showTooltip(ev, sh, e));
-    g.addEventListener('mouseleave', hideTooltip);
-    g.addEventListener('mousemove', ev => moveTooltip(ev));
+    (function(shCopy, eCopy) {
+      g.addEventListener('mouseenter', function(ev) { showTooltip(ev, shCopy, eCopy); });
+      g.addEventListener('mouseleave', hideTooltip);
+      g.addEventListener('mousemove', moveTooltip);
+    })(sh, e);
     svg.appendChild(g);
   });
 
-  // Draw labels — left side of dot if dx<0, right side if dx>=0
-  state.stakeholders.forEach(sh => {
-    const e = getEntry(snap, sh.id);
-    const pos = currPos[sh.id];
+  state.stakeholders.forEach(function(sh) {
+    var e = getEntry(snap, sh.id);
+    var pos = currPos[sh.id];
     if (!e || !pos) return;
-    const { x, y, dx } = pos;
+    var x = pos.x, y = pos.y, dx = pos.dx;
 
-    const maxLen = 10;
-    const label = sh.name.length > maxLen ? sh.name.slice(0, maxLen) + '…' : sh.name;
-    const onLeft = dx < -2;
-    const lx = onLeft ? x - 10 : x + 10;
-    const anchor = onLeft ? 'end' : 'start';
+    var maxLen = 10;
+    var label = sh.name.length > maxLen ? sh.name.slice(0, maxLen) + '…' : sh.name;
+    var onLeft = dx < -2;
+    var lx = onLeft ? x - 10 : x + 10;
+    var anchor = onLeft ? 'end' : 'start';
 
-    const t = svgEl('text', { x: lx, y: y + 4, 'text-anchor': anchor, 'font-size':'9', fill:'#1e2761', 'pointer-events':'none', 'font-weight':'500' });
-    t.textContent = label;
-    svg.appendChild(t);
+    var tEl = svgEl('text', { x: lx, y: y + 4, 'text-anchor': anchor, 'font-size':'9', fill:'#1e2761', 'pointer-events':'none', 'font-weight':'500' });
+    tEl.textContent = label;
+    svg.appendChild(tEl);
   });
 }
 
 // Tooltip
-const tooltipEl = document.getElementById('tooltip');
+var tooltipEl = document.getElementById('tooltip');
 function showTooltip(ev, sh, entry) {
   tooltipEl.classList.remove('hidden');
-  tooltipEl.innerHTML = `<strong>${sh.name}</strong><br>部門: ${sh.dept}<br>Impact: ${'★'.repeat(entry.impact)}${'☆'.repeat(3-entry.impact)}&nbsp;Influence: ${'★'.repeat(entry.influence)}${'☆'.repeat(3-entry.influence)}<br>態度: ${entry.attitude}`;
+  tooltipEl.innerHTML = '<strong>' + sh.name + '</strong><br>'
+    + t('tooltipDept') + ': ' + sh.dept + '<br>'
+    + 'Impact: ' + '★'.repeat(entry.impact) + '☆'.repeat(3-entry.impact)
+    + '&nbsp;Influence: ' + '★'.repeat(entry.influence) + '☆'.repeat(3-entry.influence) + '<br>'
+    + t('tooltipAttitude') + ': ' + attDisplay(entry.attitude);
   moveTooltip(ev);
 }
 function moveTooltip(ev) {
@@ -563,32 +808,32 @@ function hideTooltip() { tooltipEl.classList.add('hidden'); }
 // CONTROLS
 // ============================================================
 function renderControls() {
-  const sel = document.getElementById('snapshotSelect');
-  const slider = document.getElementById('timelineSlider');
-  const n = state.snapshots.length;
+  var sel = document.getElementById('snapshotSelect');
+  var slider = document.getElementById('timelineSlider');
+  var n = state.snapshots.length;
 
-  sel.innerHTML = state.snapshots.map((s, i) =>
-    `<option value="${i}" ${i===state.currentSnapIndex?'selected':''}>${s.date} ${s.label}</option>`
-  ).join('');
+  sel.innerHTML = state.snapshots.map(function(s, i) {
+    return '<option value="' + i + '"' + (i===state.currentSnapIndex?' selected':'') + '>' + s.date + ' ' + s.label + '</option>';
+  }).join('');
 
   slider.max = Math.max(0, n - 1);
   slider.value = state.currentSnapIndex;
 
-  const snap = currentSnap();
+  var snap = currentSnap();
   document.getElementById('sliderLabel').textContent = snap ? snap.label : '';
   document.getElementById('trailCheck').checked = state.showTrail;
 
-  const sideTitle = document.getElementById('sideTitle');
-  if (snap) sideTitle.textContent = `${snap.date} ${snap.label}`;
+  var sideTitle = document.getElementById('sideTitle');
+  if (snap) sideTitle.textContent = snap.date + ' ' + snap.label;
 }
 
-document.getElementById('snapshotSelect').addEventListener('change', e => {
+document.getElementById('snapshotSelect').addEventListener('change', function(e) {
   state.currentSnapIndex = parseInt(e.target.value);
   saveState();
   renderAll();
 });
 
-document.getElementById('timelineSlider').addEventListener('input', e => {
+document.getElementById('timelineSlider').addEventListener('input', function(e) {
   state.currentSnapIndex = parseInt(e.target.value);
   document.getElementById('snapshotSelect').value = state.currentSnapIndex;
   var _s = currentSnap(); document.getElementById('sliderLabel').textContent = _s ? _s.label : '';
@@ -596,7 +841,7 @@ document.getElementById('timelineSlider').addEventListener('input', e => {
   renderAll();
 });
 
-document.getElementById('trailCheck').addEventListener('change', e => {
+document.getElementById('trailCheck').addEventListener('change', function(e) {
   state.showTrail = e.target.checked;
   saveState();
   renderMap();
@@ -607,96 +852,90 @@ document.getElementById('trailCheck').addEventListener('change', e => {
 // ============================================================
 function attChangeIcon(prev, curr) {
   if (!prev) return '<span class="change-indicator change-neutral">—</span>';
-  const order = { '推進': 2, '中立': 1, '抵抗': 0 };
-  const d = order[curr] - order[prev];
-  if (d > 0) return '<span class="change-indicator change-up" title="改善">↑</span>';
-  if (d < 0) return '<span class="change-indicator change-down" title="悪化">↓</span>';
+  var order = { '推進': 2, '中立': 1, '抵抗': 0 };
+  var d = order[curr] - order[prev];
+  if (d > 0) return '<span class="change-indicator change-up" title="' + t('ttlImprove') + '">↑</span>';
+  if (d < 0) return '<span class="change-indicator change-down" title="' + t('ttlWorsen') + '">↓</span>';
   return '<span class="change-indicator change-neutral">→</span>';
 }
 
 function renderTable() {
-  const snap = currentSnap();
-  const prev = prevSnap();
-  const tbody = document.getElementById('tableBody');
+  var snap = currentSnap();
+  var prev = prevSnap();
+  var tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
 
   if (!snap) return;
 
-  state.stakeholders.forEach(sh => {
-    const e = getEntry(snap, sh.id);
-    const pe = getEntry(prev, sh.id);
+  var impactOpts = [
+    { v:1, l: '1 ' + t('axisLow') },
+    { v:2, l: '2 ' + t('axisMed') },
+    { v:3, l: '3 ' + t('axisHigh') }
+  ];
+
+  state.stakeholders.forEach(function(sh) {
+    var e = getEntry(snap, sh.id);
+    var pe = getEntry(prev, sh.id);
     if (!e) return;
 
-    const tr = document.createElement('tr');
-    const prevAtt = pe ? pe.attitude : null;
-    const changeHtml = attChangeIcon(prevAtt, e.attitude);
+    var tr = document.createElement('tr');
+    var prevAtt = pe ? pe.attitude : null;
+    var changeHtml = attChangeIcon(prevAtt, e.attitude);
 
-    tr.innerHTML = `
-      <td>${changeHtml}</td>
-      <td style="font-weight:500;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${sh.name}">${sh.name}</td>
-      <td style="color:var(--text-light);font-size:11px">${sh.dept}</td>
-      <td>
-        <select data-sid="${sh.id}" data-field="impact">
-          <option value="1" ${e.impact===1?'selected':''}>1 Low</option>
-          <option value="2" ${e.impact===2?'selected':''}>2 Med</option>
-          <option value="3" ${e.impact===3?'selected':''}>3 High</option>
-        </select>
-      </td>
-      <td>
-        <select data-sid="${sh.id}" data-field="influence">
-          <option value="1" ${e.influence===1?'selected':''}>1 Low</option>
-          <option value="2" ${e.influence===2?'selected':''}>2 Med</option>
-          <option value="3" ${e.influence===3?'selected':''}>3 High</option>
-        </select>
-      </td>
-      <td>
-        <button class="attitude-btn att-${e.attitude}" data-sid="${sh.id}" data-att="${e.attitude}">${e.attitude}</button>
-      </td>
-      <td><button class="btn btn-danger" data-del="${sh.id}">×</button></td>
-    `;
+    var impSel = impactOpts.map(function(o) {
+      return '<option value="' + o.v + '"' + (e.impact===o.v?' selected':'') + '>' + o.l + '</option>';
+    }).join('');
+    var infSel = impactOpts.map(function(o) {
+      return '<option value="' + o.v + '"' + (e.influence===o.v?' selected':'') + '>' + o.l + '</option>';
+    }).join('');
+
+    tr.innerHTML =
+      '<td>' + changeHtml + '</td>' +
+      '<td style="font-weight:500;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + sh.name + '">' + sh.name + '</td>' +
+      '<td style="color:var(--text-light);font-size:11px">' + sh.dept + '</td>' +
+      '<td><select data-sid="' + sh.id + '" data-field="impact">' + impSel + '</select></td>' +
+      '<td><select data-sid="' + sh.id + '" data-field="influence">' + infSel + '</select></td>' +
+      '<td><button class="attitude-btn att-' + e.attitude + '" data-sid="' + sh.id + '" data-att="' + e.attitude + '">' + attDisplay(e.attitude) + '</button></td>' +
+      '<td><button class="btn btn-danger" data-del="' + sh.id + '">×</button></td>';
     tbody.appendChild(tr);
   });
 
-  // Events
-  tbody.querySelectorAll('select[data-field]').forEach(sel => {
-    sel.addEventListener('change', e => {
-      const sid = sel.dataset.sid, field = sel.dataset.field;
-      const entry = getEntry(currentSnap(), sid);
+  tbody.querySelectorAll('select[data-field]').forEach(function(sel) {
+    sel.addEventListener('change', function() {
+      var sid = sel.dataset.sid, field = sel.dataset.field;
+      var entry = getEntry(currentSnap(), sid);
       if (entry) { entry[field] = parseInt(sel.value); saveState(); renderAll(); }
     });
   });
-  tbody.querySelectorAll('.attitude-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const sid = btn.dataset.sid;
-      const entry = getEntry(currentSnap(), sid);
+  tbody.querySelectorAll('.attitude-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var sid = btn.dataset.sid;
+      var entry = getEntry(currentSnap(), sid);
       if (!entry) return;
-      const idx = ATTITUDES.indexOf(entry.attitude);
+      var idx = ATTITUDES.indexOf(entry.attitude);
       entry.attitude = ATTITUDES[(idx + 1) % 3];
       saveState(); renderAll();
     });
   });
-  tbody.querySelectorAll('[data-del]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const sid = btn.dataset.del;
-      if (!confirm('この群を削除しますか？全スナップショットから削除されます。')) return;
-      state.stakeholders = state.stakeholders.filter(s => s.id !== sid);
-      state.snapshots.forEach(sn => { sn.entries = sn.entries.filter(e => e.stakeholderId !== sid); });
+  tbody.querySelectorAll('[data-del]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var sid = btn.dataset.del;
+      if (!confirm(t('confirmDeleteGroup'))) return;
+      state.stakeholders = state.stakeholders.filter(function(s) { return s.id !== sid; });
+      state.snapshots.forEach(function(sn) { sn.entries = sn.entries.filter(function(e) { return e.stakeholderId !== sid; }); });
       saveState(); renderAll();
     });
   });
 }
 
 // Add stakeholder
-document.getElementById('addStakeholderBtn').addEventListener('click', () => {
-  const name = document.getElementById('newName').value.trim();
-  const dept = document.getElementById('newDept').value.trim();
-  if (!name) { alert('群名を入力してください'); return; }
-  if (/^[ぁ-ん一-龥ァ-ン]{1,5}$/.test(name) && !dept) {
-    // likely a personal name — just a soft warn via placeholder, not a hard block
-  }
-  const id = 's' + Date.now();
-  state.stakeholders.push({ id, name, dept: dept || '未設定', note: '' });
-  state.snapshots.forEach(sn => {
+document.getElementById('addStakeholderBtn').addEventListener('click', function() {
+  var name = document.getElementById('newName').value.trim();
+  var dept = document.getElementById('newDept').value.trim();
+  if (!name) { alert(t('alertAddName')); return; }
+  var id = 's' + Date.now();
+  state.stakeholders.push({ id: id, name: name, dept: dept || t('deptDefault'), note: '' });
+  state.snapshots.forEach(function(sn) {
     sn.entries.push({ stakeholderId: id, impact: 2, influence: 2, attitude: '中立' });
   });
   document.getElementById('newName').value = '';
@@ -707,110 +946,111 @@ document.getElementById('addStakeholderBtn').addEventListener('click', () => {
 // ============================================================
 // SUMMARY
 // ============================================================
+function quadrant(influence, impact) {
+  if (influence >= 2 && impact >= 2) return 'q1';
+  if (influence >= 2 && impact < 2)  return 'q2';
+  if (influence < 2  && impact >= 2) return 'q3';
+  return 'q4';
+}
+
 function renderSummary() {
-  const snap = currentSnap();
-  const prev = prevSnap();
-  const grid = document.getElementById('summaryGrid');
+  var snap = currentSnap();
+  var prev = prevSnap();
+  var grid = document.getElementById('summaryGrid');
   if (!snap) { grid.innerHTML = ''; return; }
 
-  const counts = { '推進': 0, '中立': 0, '抵抗': 0 };
-  const qCounts = { '巻き込む': 0, '味方につける': 0, '支える': 0, '知らせる': 0 };
-  snap.entries.forEach(e => {
+  var counts = { '推進': 0, '中立': 0, '抵抗': 0 };
+  var qCounts = { q1: 0, q2: 0, q3: 0, q4: 0 };
+  snap.entries.forEach(function(e) {
     counts[e.attitude] = (counts[e.attitude] || 0) + 1;
-    const q = quadrant(e.influence, e.impact);
+    var q = quadrant(e.influence, e.impact);
     qCounts[q]++;
   });
-  const total = snap.entries.length;
+  var total = snap.entries.length;
 
-  const prevCounts = { '推進': 0, '中立': 0, '抵抗': 0 };
-  if (prev) prev.entries.forEach(e => { prevCounts[e.attitude] = (prevCounts[e.attitude] || 0) + 1; });
+  var prevCounts = { '推進': 0, '中立': 0, '抵抗': 0 };
+  if (prev) prev.entries.forEach(function(e) { prevCounts[e.attitude] = (prevCounts[e.attitude] || 0) + 1; });
 
-  const diffItems = [];
+  var diffItems = [];
   if (prev) {
-    ATTITUDES.forEach(a => {
-      const d = counts[a] - prevCounts[a];
-      if (d !== 0) diffItems.push({ att: a, d });
+    ATTITUDES.forEach(function(a) {
+      var d = counts[a] - prevCounts[a];
+      if (d !== 0) diffItems.push({ att: a, d: d });
     });
   }
 
-  grid.innerHTML = `
-    <div class="summary-card">
-      <h3>態度の内訳</h3>
-      <div class="attitude-bars">
-        ${ATTITUDES.map(a => `
-          <div class="att-bar-row">
-            <span>${a}</span>
-            <div class="att-bar-bg"><div class="att-bar-fill" style="width:${total?counts[a]/total*100:0}%;background:${ATT_COLOR[a]}"></div></div>
-            <span class="att-bar-count">${counts[a]}</span>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-    <div class="summary-card">
-      <h3>象限ごとの群数</h3>
-      ${Object.entries(qCounts).map(([q,c]) => `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--text-light)">${q}</span><strong>${c}</strong></div>`).join('')}
-    </div>
-    <div class="summary-card">
-      <h3>前回との差分</h3>
-      ${!prev ? '<div class="diff-text">最初のスナップショットです</div>' :
-        diffItems.length === 0 ? '<div class="diff-text">変化なし</div>' :
-        diffItems.map(({att, d}) => `<div class="diff-item"><span class="${d>0?'diff-pos':'diff-neg'}">${d>0?'＋':''}${d} ${att}</span></div>`).join('')
-      }
-    </div>
-  `;
-}
+  var attBars = ATTITUDES.map(function(a) {
+    return '<div class="att-bar-row">' +
+      '<span>' + attDisplay(a) + '</span>' +
+      '<div class="att-bar-bg"><div class="att-bar-fill" style="width:' + (total ? counts[a]/total*100 : 0) + '%;background:' + ATT_COLOR[a] + '"></div></div>' +
+      '<span class="att-bar-count">' + counts[a] + '</span>' +
+      '</div>';
+  }).join('');
 
-function quadrant(influence, impact) {
-  if (influence >= 2 && impact >= 2) return '巻き込む';
-  if (influence >= 2 && impact < 2) return '味方につける';
-  if (influence < 2 && impact >= 2) return '支える';
-  return '知らせる';
+  var qRows = ['q1','q2','q3','q4'].map(function(q) {
+    return '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--text-light)">' + t(q) + '</span><strong>' + qCounts[q] + '</strong></div>';
+  }).join('');
+
+  var diffHtml;
+  if (!prev) {
+    diffHtml = '<div class="diff-text">' + t('firstSnap') + '</div>';
+  } else if (diffItems.length === 0) {
+    diffHtml = '<div class="diff-text">' + t('noChange') + '</div>';
+  } else {
+    diffHtml = diffItems.map(function(item) {
+      return '<div class="diff-item"><span class="' + (item.d > 0 ? 'diff-pos' : 'diff-neg') + '">' + (item.d > 0 ? '+' : '') + item.d + ' ' + attDisplay(item.att) + '</span></div>';
+    }).join('');
+  }
+
+  grid.innerHTML =
+    '<div class="summary-card"><h3>' + t('cardAttitude') + '</h3><div class="attitude-bars">' + attBars + '</div></div>' +
+    '<div class="summary-card"><h3>' + t('cardQuadrant') + '</h3>' + qRows + '</div>' +
+    '<div class="summary-card"><h3>' + t('cardDiff') + '</h3>' + diffHtml + '</div>';
 }
 
 // ============================================================
 // SNAPSHOT MANAGEMENT
 // ============================================================
-document.getElementById('newSnapshotBtn').addEventListener('click', () => {
-  const today = new Date().toISOString().slice(0, 10);
+document.getElementById('newSnapshotBtn').addEventListener('click', function() {
+  var today = new Date().toISOString().slice(0, 10);
   document.getElementById('modalDate').value = today;
   document.getElementById('modalLabel').value = '';
   document.getElementById('modalOverlay').classList.remove('hidden');
 });
 
-document.getElementById('modalCancel').addEventListener('click', () => {
+document.getElementById('modalCancel').addEventListener('click', function() {
   document.getElementById('modalOverlay').classList.add('hidden');
 });
 
-document.getElementById('modalCreate').addEventListener('click', () => {
-  const date = document.getElementById('modalDate').value;
-  const label = document.getElementById('modalLabel').value.trim();
-  if (!date || !label) { alert('日付とラベルを入力してください'); return; }
+document.getElementById('modalCreate').addEventListener('click', function() {
+  var date = document.getElementById('modalDate').value;
+  var label = document.getElementById('modalLabel').value.trim();
+  if (!date || !label) { alert(t('alertDateLabel')); return; }
 
-  const snap = currentSnap();
-  const newEntries = snap
+  var snap = currentSnap();
+  var newEntries = snap
     ? JSON.parse(JSON.stringify(snap.entries))
-    : state.stakeholders.map(sh => ({ stakeholderId: sh.id, impact: 2, influence: 2, attitude: '中立' }));
+    : state.stakeholders.map(function(sh) { return { stakeholderId: sh.id, impact: 2, influence: 2, attitude: '中立' }; });
 
-  const newSnap = { id: 'snap' + Date.now(), date, label, entries: newEntries };
+  var newSnap = { id: 'snap' + Date.now(), date: date, label: label, entries: newEntries };
   state.snapshots.push(newSnap);
-  state.snapshots.sort((a, b) => a.date.localeCompare(b.date));
-  state.currentSnapIndex = state.snapshots.findIndex(s => s.id === newSnap.id);
+  state.snapshots.sort(function(a, b) { return a.date.localeCompare(b.date); });
+  state.currentSnapIndex = state.snapshots.findIndex(function(s) { return s.id === newSnap.id; });
 
   document.getElementById('modalOverlay').classList.add('hidden');
   saveState(); renderAll();
 });
 
-document.getElementById('deleteSnapshotBtn').addEventListener('click', () => {
-  if (state.snapshots.length <= 1) { alert('スナップショットが1つしかないため削除できません'); return; }
-  const snap = currentSnap();
-  if (!confirm(`「${snap.label}」を削除しますか？`)) return;
+document.getElementById('deleteSnapshotBtn').addEventListener('click', function() {
+  if (state.snapshots.length <= 1) { alert(t('alertOnlyOne')); return; }
+  var snap = currentSnap();
+  if (!confirm(t('confirmDeleteSnap1') + snap.label + t('confirmDeleteSnap2'))) return;
   state.snapshots.splice(state.currentSnapIndex, 1);
   state.currentSnapIndex = Math.min(state.currentSnapIndex, state.snapshots.length - 1);
   saveState(); renderAll();
 });
 
-// Close modal on overlay click
-document.getElementById('modalOverlay').addEventListener('click', e => {
+document.getElementById('modalOverlay').addEventListener('click', function(e) {
   if (e.target === document.getElementById('modalOverlay'))
     document.getElementById('modalOverlay').classList.add('hidden');
 });
@@ -819,6 +1059,7 @@ document.getElementById('modalOverlay').addEventListener('click', e => {
 // RENDER ALL
 // ============================================================
 function renderAll() {
+  applyLang();
   renderControls();
   renderMap();
   renderTable();
