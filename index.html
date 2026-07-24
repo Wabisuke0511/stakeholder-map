@@ -146,6 +146,23 @@ td select { font-size: 11px; padding: 2px 4px; border-radius: 3px; }
 .diff-pos { color: var(--promote); font-weight: 600; }
 .diff-neg { color: var(--resist); font-weight: 600; }
 
+/* Recommendations */
+.recommendations { border-top: 1px solid var(--border); background: var(--white); padding: 16px 20px; }
+.recommendations h2 { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 12px; }
+.rec-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 13px; border-radius: 6px; margin-bottom: 8px; font-size: 13px; line-height: 1.5; }
+.rec-item:last-child { margin-bottom: 0; }
+.rec-critical { background: rgba(176,65,62,0.07); border-left: 3px solid var(--resist); }
+.rec-priority  { background: rgba(232,163,61,0.10); border-left: 3px solid var(--orange); }
+.rec-leverage  { background: rgba(46,125,91,0.07);  border-left: 3px solid var(--promote); }
+.rec-support   { background: rgba(30,39,97,0.05);   border-left: 3px solid var(--navy); }
+.rec-ok        { background: rgba(46,125,91,0.05);  border-left: 3px solid var(--promote); }
+.rec-icon { font-size: 13px; flex-shrink: 0; margin-top: 2px; }
+.rec-label { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+.rec-label.rec-critical { color: var(--resist); }
+.rec-label.rec-priority  { color: #a07010; }
+.rec-label.rec-leverage  { color: var(--promote); }
+.rec-label.rec-support   { color: var(--navy); }
+
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; }
 .modal-overlay.hidden { display: none; }
@@ -234,6 +251,11 @@ td select { font-size: 11px; padding: 2px 4px; border-radius: 3px; }
   <div class="summary-grid" id="summaryGrid"></div>
 </div>
 
+<div class="recommendations" id="recommendationsSection">
+  <h2 id="rec-title">Recommended Actions</h2>
+  <div id="recList"></div>
+</div>
+
 <!-- New snapshot modal -->
 <div class="modal-overlay hidden" id="modalOverlay">
   <div class="modal">
@@ -300,6 +322,13 @@ var LANGS = {
     q1: '巻き込む', q2: '味方につける', q3: '支える', q4: '知らせる',
     axisLow: 'Low', axisMed: 'Med', axisMedium: 'Medium', axisHigh: 'High',
     deptDefault: '未設定',
+    recTitle: '推奨アクション',
+    recCritical: '緊急対応', recPriority: '優先対応', recLeverage: '活用推進', recSupport: '変革支援',
+    recResistMsg: '影響力の高い象限で抵抗中。個別面談で懸念を把握・解消する',
+    recNeutralMsg: '影響力の高い象限でニュートラル。変革への関与を高める働きかけを',
+    recChampionMsg: '変革推進者として、組織全体への影響力を最大化する',
+    recSupportMsg: '影響度の高い象限。体系的なトレーニングと変革支援を提供する',
+    recNone: '現時点で特段の対応アクションは不要です',
     htmlLang: 'ja'
   },
   en: {
@@ -341,6 +370,13 @@ var LANGS = {
     q1: 'Engage', q2: 'Win Over', q3: 'Support', q4: 'Inform',
     axisLow: 'Low', axisMed: 'Med', axisMedium: 'Medium', axisHigh: 'High',
     deptDefault: 'TBD',
+    recTitle: 'Recommended Actions',
+    recCritical: 'Critical', recPriority: 'Priority', recLeverage: 'Leverage', recSupport: 'Support',
+    recResistMsg: 'resistant in a high-influence quadrant — schedule 1:1s to understand and address concerns',
+    recNeutralMsg: 'neutral in a high-influence quadrant — build commitment through targeted engagement',
+    recChampionMsg: 'champion(s) — activate as change advocates to influence the wider organisation',
+    recSupportMsg: 'in high-impact quadrant — provide structured training and hands-on change support',
+    recNone: 'No critical actions required at this stage.',
     htmlLang: 'en'
   },
   zh: {
@@ -382,6 +418,13 @@ var LANGS = {
     q1: '重点参与', q2: '争取支持', q3: '给予支持', q4: '及时告知',
     axisLow: '低', axisMed: '中', axisMedium: '中等', axisHigh: '高',
     deptDefault: '未设置',
+    recTitle: '推荐行动',
+    recCritical: '紧急', recPriority: '优先', recLeverage: '借力', recSupport: '变革支持',
+    recResistMsg: '处于高影响力象限且持抵制态度——安排1对1会议了解并解决顾虑',
+    recNeutralMsg: '处于高影响力象限且态度中立——通过有针对性的沟通建立参与感',
+    recChampionMsg: '变革推进者——充分发挥其影响力，推动变革在组织中落地',
+    recSupportMsg: '处于高影响度象限——提供系统培训和变革落地支持',
+    recNone: '当前阶段无需紧急行动',
     htmlLang: 'zh-CN'
   },
   de: {
@@ -423,6 +466,13 @@ var LANGS = {
     q1: 'Einbinden', q2: 'Gewinnen', q3: 'Unterstützen', q4: 'Informieren',
     axisLow: 'Niedrig', axisMed: 'Mittel', axisMedium: 'Mittel', axisHigh: 'Hoch',
     deptDefault: 'Unbekannt',
+    recTitle: 'Empfohlene Maßnahmen',
+    recCritical: 'Kritisch', recPriority: 'Priorität', recLeverage: 'Nutzen', recSupport: 'Unterstützen',
+    recResistMsg: 'Widerstand im einflussreichen Quadrant — Einzelgespräche zur Klärung von Bedenken führen',
+    recNeutralMsg: 'neutral im einflussreichen Quadrant — Commitment durch gezielte Maßnahmen aufbauen',
+    recChampionMsg: 'Befürworter — als Change-Botschafter aktivieren, um die Organisation zu bewegen',
+    recSupportMsg: 'im hochbetroffenen Quadrant — strukturiertes Training und Change-Support bereitstellen',
+    recNone: 'Derzeit keine kritischen Maßnahmen erforderlich.',
     htmlLang: 'de'
   }
 };
@@ -456,6 +506,7 @@ function applyLang() {
   document.getElementById('newDept').placeholder = t('phDept');
   document.getElementById('addStakeholderBtn').textContent = t('btnAdd');
   document.getElementById('summary-title').textContent = t('summaryTitle');
+  document.getElementById('rec-title').textContent = t('recTitle');
   document.getElementById('modal-title').textContent = t('modalTitle');
   document.getElementById('modal-date-lbl').textContent = t('modalDate');
   document.getElementById('modal-label-lbl').textContent = t('modalLabelLbl');
@@ -1066,6 +1117,57 @@ function renderSummary() {
 }
 
 // ============================================================
+// RECOMMENDED ACTIONS
+// ============================================================
+function renderRecommendations() {
+  var snap = currentSnap();
+  var container = document.getElementById('recList');
+  if (!snap) { container.innerHTML = ''; return; }
+
+  var q1Resist = [], q1Neutral = [], q2Resist = [], q2Neutral = [], q3NonChamp = [], allChampions = [];
+
+  snap.entries.forEach(function(e) {
+    var sh = null;
+    for (var i = 0; i < state.stakeholders.length; i++) {
+      if (state.stakeholders[i].id === e.stakeholderId) { sh = state.stakeholders[i]; break; }
+    }
+    if (!sh) return;
+    var q = quadrant(e.influence, e.impact);
+    if (e.attitude === '推進') allChampions.push(sh.name);
+    if (q === 'q1') {
+      if (e.attitude === '抵抗') q1Resist.push(sh.name);
+      else if (e.attitude === '中立') q1Neutral.push(sh.name);
+    } else if (q === 'q2') {
+      if (e.attitude === '抵抗') q2Resist.push(sh.name);
+      else if (e.attitude === '中立') q2Neutral.push(sh.name);
+    } else if (q === 'q3') {
+      if (e.attitude !== '推進') q3NonChamp.push(sh.name);
+    }
+  });
+
+  var recs = [];
+  var resistHigh = q1Resist.concat(q2Resist);
+  var neutralHigh = q1Neutral.concat(q2Neutral);
+  if (resistHigh.length)   recs.push({ level:'critical', names: resistHigh,   msg: t('recResistMsg') });
+  if (neutralHigh.length)  recs.push({ level:'priority', names: neutralHigh,  msg: t('recNeutralMsg') });
+  if (q3NonChamp.length)   recs.push({ level:'support',  names: q3NonChamp,   msg: t('recSupportMsg') });
+  if (allChampions.length) recs.push({ level:'leverage', names: allChampions, msg: t('recChampionMsg') });
+  if (!recs.length)        recs.push({ level:'ok',       names: [],           msg: t('recNone') });
+
+  var icons  = { critical:'🔴', priority:'🟡', support:'🔵', leverage:'🟢', ok:'✅' };
+  var labels = { critical:'recCritical', priority:'recPriority', support:'recSupport', leverage:'recLeverage' };
+
+  container.innerHTML = recs.map(function(r) {
+    var lbl = labels[r.level] ? '<span class="rec-label rec-' + r.level + '">' + t(labels[r.level]) + '</span> ' : '';
+    var names = r.names.length ? '<strong>' + r.names.join(', ') + '</strong> — ' : '';
+    return '<div class="rec-item rec-' + r.level + '">'
+      + '<span class="rec-icon">' + icons[r.level] + '</span>'
+      + '<span>' + lbl + names + r.msg + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+// ============================================================
 // SNAPSHOT MANAGEMENT
 // ============================================================
 document.getElementById('newSnapshotBtn').addEventListener('click', function() {
@@ -1121,6 +1223,7 @@ function renderAll() {
   renderMap();
   renderTable();
   renderSummary();
+  renderRecommendations();
 }
 
 // ============================================================
