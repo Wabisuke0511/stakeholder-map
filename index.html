@@ -872,10 +872,10 @@ function pinTooltip(cx, cy, sh, entry) {
   tooltipEl.innerHTML = buildTooltipHtml(sh, entry, true);
   placeTooltip(cx, cy);
   var closeBtn = document.getElementById('tt-close-btn');
-  if (closeBtn) closeBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    unpinTooltip();
-  });
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function(e) { e.stopPropagation(); unpinTooltip(); });
+    closeBtn.addEventListener('touchend', function(e) { e.preventDefault(); e.stopPropagation(); unpinTooltip(); });
+  }
 }
 function unpinTooltip() {
   tooltipPinned = false;
@@ -884,9 +884,9 @@ function unpinTooltip() {
   tooltipEl.classList.add('hidden');
 }
 
-// Dismiss pinned tooltip when tapping/clicking outside a dot
-document.addEventListener('click', function() { if (tooltipPinned) unpinTooltip(); });
-document.addEventListener('touchstart', function() { if (tooltipPinned) unpinTooltip(); }, { passive: true });
+// Dismiss pinned tooltip only when tapping/clicking OUTSIDE the tooltip itself
+document.addEventListener('click', function(ev) { if (tooltipPinned && !tooltipEl.contains(ev.target)) unpinTooltip(); });
+document.addEventListener('touchstart', function(ev) { if (tooltipPinned && !tooltipEl.contains(ev.target)) unpinTooltip(); }, { passive: true });
 
 // ============================================================
 // CONTROLS
